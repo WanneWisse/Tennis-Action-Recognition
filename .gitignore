@@ -11,5 +11,10 @@
 /__pycache__
 /UCF101_subset
 /Splitted_data
+/VIDEO_Depth
 /VIDEO_RGB
 /VIDEO_RGB_SUBSET
+/VIDEO_Mask
+/VIDEO_Skelet2D
+/VIDEO_Skelet3D
+/THETIS_Skeletal_Joints
