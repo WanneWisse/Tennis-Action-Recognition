@@ -106,6 +106,8 @@ def plot_confusion_matrix(actual, predicted, labels, ds_type,modelname):
   ax.xaxis.set_ticklabels(labels)
   ax.yaxis.set_ticklabels(labels)
   plt.savefig("conf_"+modelname+".png",  bbox_inches = "tight")
+  plt.clf()
+  plt.close()
   #plt.show()
 
 def train_model(num_epochs,learning_r, batch_size, num_frames,num_layers_to_retrain):
@@ -134,10 +136,14 @@ def train_model(num_epochs,learning_r, batch_size, num_frames,num_layers_to_retr
   backbone.trainable = True
 
   # Freeze all the layers before the `fine_tune_at` layer
-  print( backbone.layers[:-num_layers_to_retrain])
-  print(backbone.layers)
+  #print( backbone.layers[:-num_layers_to_retrain])
+  #print(backbone.layers)
   for layer in backbone.layers[:-num_layers_to_retrain]:
     layer.trainable = False
+
+  for layer in backbone.layers:
+    print(layer)
+    print(layer.trainable)
 
   # Set num_classes=600 to load the pre-trained weights from the original model
   model = movinet_model.MovinetClassifier(backbone=backbone, num_classes=600)
@@ -151,19 +157,25 @@ def train_model(num_epochs,learning_r, batch_size, num_frames,num_layers_to_retr
 
   model = build_classifier(batch_size, num_frames, resolution, backbone, 4)
 
-
   loss_obj = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
   optimizer = tf.keras.optimizers.Adam(learning_rate = learning_r)
 
+
+
   model.compile(loss=loss_obj, optimizer=optimizer, metrics=['accuracy'])
 
-
+  callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4)
+  for layer in model.layers:
+    print(layer)
+  # print(model.layers[-3].get_weights())
+  # print(model.layers[-2].get_weights())
+  # print(model.layers[-1].get_weights())
   history = model.fit(train_ds,
                       validation_data=test_ds,
                       epochs=num_epochs,
                       validation_freq=1,
-                      verbose=1)
+                      verbose=1,  callbacks=[callback])
   modelname = f'saved_model/retrained_model_{num_epochs}_{learning_r}_{num_frames}_{batch_size}_{num_layers_to_retrain}'
   plot_results(history,model,num_frames,test_ds,modelname)
   model.save(modelname)
@@ -177,7 +189,11 @@ def build_classifier(batch_size, num_frames, resolution, backbone, num_classes):
 
   return model
 
- 
+learning_rates = [0.0001]
+num_of_layers_to_retrain = [6]
 
-train_model(num_epochs=20,learning_r=0.0001,num_frames=8,batch_size=8,num_layers_to_retrain=1)
+
+for learning_rate in learning_rates:
+  for layer in num_of_layers_to_retrain:
+    train_model(num_epochs=100,learning_r=learning_rate,num_frames=16,batch_size=8,num_layers_to_retrain=layer)
 
