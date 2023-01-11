@@ -94,6 +94,7 @@ def get_actual_predicted_labels(model, dataset):
   return actual, predicted
 
 def plot_confusion_matrix(actual, predicted, labels, ds_type,modelname):
+  
   cm = tf.math.confusion_matrix(actual, predicted)
   ax = sns.heatmap(cm, annot=True, fmt='g')
   sns.set(rc={'figure.figsize':(12, 12)})
