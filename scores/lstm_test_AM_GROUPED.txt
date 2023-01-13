@@ -1,0 +1,13 @@
+backhand: precision: 0.75, recall: 0.6, f1-score: 0.6666666666666665, support: 20, 
+smash: precision: 0.35714285714285715, recall: 0.21739130434782608, f1-score: 0.27027027027027023, support: 23, 
+forehandopen: precision: 0.85, recall: 0.85, f1-score: 0.85, support: 20, 
+backhand2hands: precision: 0.6, recall: 0.631578947368421, f1-score: 0.6153846153846154, support: 19, 
+backhandslice: precision: 0.5454545454545454, recall: 0.631578947368421, f1-score: 0.5853658536585366, support: 19, 
+forehandflat: precision: 0.6486486486486487, recall: 0.6486486486486487, f1-score: 0.6486486486486487, support: 37, 
+forslice: precision: 0.6, recall: 0.3103448275862069, f1-score: 0.4090909090909091, support: 29, 
+service: precision: 0.65, recall: 0.8297872340425532, f1-score: 0.7289719626168223, support: 47, 
+volley: precision: 0.39285714285714285, recall: 0.5238095238095238, f1-score: 0.4489795918367347, support: 21, 
+volleybackhand: precision: 0.5294117647058824, recall: 0.6428571428571429, f1-score: 0.5806451612903226, support: 14, 
+accuracy: 0.6024096385542169
+macro avg: precision: 0.5923514958809076, recall: 0.5885996576028744, f1-score: 0.5804023679463526, support: 249, 
+weighted avg: precision: 0.6007617943124675, recall: 0.6024096385542169, f1-score: 0.5905491194965157, support: 249, 

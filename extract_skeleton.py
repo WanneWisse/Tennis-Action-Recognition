@@ -4,6 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn import metrics
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from sklearn.model_selection import train_test_split
 
 def plot_results(history,modelname):
     print(history.history)
@@ -33,7 +38,7 @@ def plot_results(history,modelname):
     plt.title('Training and Validation Loss')
     plt.xlabel('epoch')
 
-    plt.savefig("plot_"+modelname+".png", bbox_inches = "tight")  
+    plt.savefig("lstm_models/plot_"+modelname+".png", bbox_inches = "tight")  
     plt.clf()
     plt.close()
 
@@ -48,9 +53,22 @@ def get_actual_predicted_labels(model, xtest, y):
   return actual, predicted
 
 def plot_confusion_matrix(actual, predicted, labels,modelname):
-    print(actual)
-    print(predicted)
-    cm = tf.math.confusion_matrix(actual, predicted)
+    # Print the confusion matrix
+    cm = metrics.confusion_matrix(actual, predicted)
+
+    # Print the precision and recall, among other metrics
+    report = metrics.classification_report(actual, predicted, target_names=labels, digits=3, output_dict=True)
+    f = open(f"scores/{modelname}.txt", "w")
+    for label,scores in report.items():
+        f.write(label+ ": ")
+        if type(scores) == dict:
+            for score_name,score_value in scores.items():
+                f.write(score_name + ": " + str(score_value) + ", ")
+        else:
+            f.write(str(scores))
+        f.write("\n")
+    f.close() 
+           
     ax = sns.heatmap(cm, annot=True, fmt='g')
     sns.set(rc={'figure.figsize':(12, 12)})
     sns.set(font_scale=1.4)
@@ -61,24 +79,22 @@ def plot_confusion_matrix(actual, predicted, labels,modelname):
     plt.yticks(rotation=0)
     ax.xaxis.set_ticklabels(labels)
     ax.yaxis.set_ticklabels(labels)
-    plt.savefig("conf_"+modelname+".png",  bbox_inches = "tight")
+    plt.savefig("lstm_models/conf_"+modelname+".png",  bbox_inches = "tight")
     plt.clf()
     plt.close()
-    #plt.show()
 
 
-CLASSES = ["backhand","smash","forehandopen","backhand2hands","backhandslice","forehandflat","forslice","serviceflat","servicekick","serviceslice","volley","volleybackhand"]
-AMOUNT_FRAMES_TO_TAKE = 50
-DIRECTORY = "normal_oniFiles"
+CLASSES = ["backhand","smash","forehandopen","backhand2hands","backhandslice","forehandflat","forslice","service","volley","volleybackhand"]
+DIRECTORY = "normal_oniFiles-grouped-service"
 
-samples_all_class = []
-labels = []
-for outer_d in os.listdir(DIRECTORY):
-    #amateur/pro
-    if outer_d == "ONI_EXPERTS":
+def train_model(modelname, amount_frames_to_take, batch_size, learning_rate, model_rnn):
+    samples_all_class = []
+    labels = []
+    for outer_d in os.listdir(DIRECTORY):
+        #amateur/pro
+        #if outer_d == "ONI_EXPERTS":
         outer_d = os.path.join(DIRECTORY, outer_d)
         for d in os.listdir(outer_d):
-            #if d in CLASSES:
             class_d = os.path.join(outer_d, d)
             for f in os.listdir(class_d):
                 f = os.path.join(class_d, f)
@@ -111,7 +127,7 @@ for outer_d in os.listdir(DIRECTORY):
                 original_frames_to_take = []
                 flipped_frames_to_take = []
                 amount_frames = len(vectors_for_all_frames)
-                for i in np.linspace(0, amount_frames-1, num=AMOUNT_FRAMES_TO_TAKE, dtype=int):
+                for i in np.linspace(0, amount_frames-1, num=amount_frames_to_take, dtype=int):
                     #horizontal flip and save sample
                     x,y,z = vectors_for_all_frames[i]
                     middle_x = (max(x)+min(x))/2
@@ -139,54 +155,48 @@ for outer_d in os.listdir(DIRECTORY):
                 labels.append(CLASSES.index(d))
                 labels.append(CLASSES.index(d))
 
-            #print(len(samples_all_class))
+    X_train, X_test, y_train, y_test = train_test_split(samples_all_class, labels, test_size=0.2)
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
 
-#print(len(samples_all_class))
+    optimizer = tf.keras.optimizers.Adam(learning_rate = learning_rate)
+    model = keras.Sequential()
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-from sklearn.model_selection import train_test_split
+    if model_rnn == "LSTM":
+        model.add(layers.LSTM(amount_frames_to_take-1))
+    else:
+        model.add(layers.GRU(amount_frames_to_take-1))
 
-
-X_train, X_test, y_train, y_test = train_test_split(samples_all_class, labels, test_size=0.2)
-X_train = np.array(X_train)
-X_test = np.array(X_test)
-y_train = np.array(y_train)
-y_test = np.array(y_test)
-print(type(y_test))
-
-optimizer = tf.keras.optimizers.Adam(learning_rate = 0.0001)
-model = keras.Sequential()
-# Add an Embedding layer expecting input vocab of size 1000, and
-# output embedding dimension of size 64.
-
-# Add a LSTM layer with 128 internal units.
-model.add(layers.LSTM(AMOUNT_FRAMES_TO_TAKE-1))
-
-# Add a Dense layer with 10 units.
-model.add(layers.Dense(len(CLASSES)))
-
-#model.summary()
-
-model.compile(
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    optimizer=optimizer,
-    metrics=["accuracy"],
-)
+    model.add(layers.Dense(len(CLASSES)))
 
 
-history = model.fit(
-    X_train, y_train, validation_data=(X_test, y_test), batch_size=20, epochs=250
-)
+    model.compile(
+        loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        optimizer=optimizer,
+        metrics=["accuracy"],
+    )
+
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
+    history = model.fit(
+        X_train, y_train, validation_data=(X_test, y_test), batch_size=batch_size, epochs=250,callbacks=[callback]
+    )
 
 
-actual,predicted = get_actual_predicted_labels(model,X_test,y_test)
-print(predicted)
-plot_confusion_matrix(actual,predicted,CLASSES,"lstm_test")
-plot_results(history,"lstm_test")
+    actual,predicted = get_actual_predicted_labels(model,X_test,y_test)
+    plot_confusion_matrix(actual,predicted,CLASSES,modelname)
+    plot_results(history,modelname)
 
 
-            
-            
+# hyperparamters: amount_frames_to_take, batch_size, learning_rate, model_rnn
+model_rnn = ["LSTM","GRU"]
+learning_rates = [0.001,0.0001,0.00001]
+batch_sizes = [8,16,32]
+amounts_frames_to_take = [20,40,60]
 
+for model in model_rnn:
+    for learing_r in learning_rates:
+        for batch_s in batch_sizes:
+            for amount_f in amounts_frames_to_take:
+                train_model(f"{model}_{learing_r}_{batch_s}_{amount_f}",amount_f,batch_s,learing_r,model_rnn)
