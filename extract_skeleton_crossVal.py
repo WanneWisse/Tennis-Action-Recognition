@@ -182,7 +182,8 @@ def train_model(modelname, amount_frames_to_take, batch_size, learning_rate, mod
                 labels.append(CLASSES.index(d))
 
 
-    kf = KFold(n_splits=5, shuffle=False)
+    kf = KFold(n_splits=5, shuffle=True, random_state=3)
+    
     #X = pd.DataFrame(samples_all_class)
     #print(X.head())
     X = np.array(samples_all_class)
@@ -194,6 +195,8 @@ def train_model(modelname, amount_frames_to_take, batch_size, learning_rate, mod
     all_predicted = []
 
     for train_idx, val_idx in kf.split(X, y):
+        print("train indx: ", train_idx)
+        print("Test indx: ", val_idx)
         X_train = X[train_idx]
         y_train = y[train_idx]
 
