@@ -236,10 +236,14 @@ def train_model(modelname, amount_frames_to_take, batch_size, learning_rate, mod
 
 
 # hyperparamters: amount_frames_to_take, batch_size, learning_rate, model_rnn
-model_rnn = ["LSTM","GRU"]
+model_rnn = ["LSTM"]
 learning_rates = [0.001,0.0001]
 batch_sizes = [8,16,32]
 amounts_frames_to_take = [40,60]
+# model_rnn = ["GRU"]
+# learning_rates = [0.0001]
+# batch_sizes = [32]
+# amounts_frames_to_take = [60]
 
 for model in model_rnn:
     for learing_r in learning_rates:
